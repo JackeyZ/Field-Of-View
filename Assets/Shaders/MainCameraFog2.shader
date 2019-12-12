@@ -82,36 +82,59 @@
 				}
 
 				if(eyesLinearDepth + 0.002f >= pixedDepth){
-					return mainColor;
+					return float4(1, 1, 1, 1);
 				}
 
-				return mainColor * 0.2f;
-				return float4(0, 0, 0, 1);
-
-
-
-
-
-
-				//float4 eyesClipPos = mul(_EyesVP, worldpos);
-				//float4 eyesViewPos = mul(_EyesV, worldpos);
-				//float objDepth = -eyesViewPos.z/(_EyesFarZ - _EyesNearZ);
-				//float projectX = eyesClipPos.x/eyesClipPos.w;
-				//float projectY = eyesClipPos.y/eyesClipPos.w;
-
-
-
-				////判断是否在视野内
-				//if(objDepth > 0 && projectX >= -1 && projectX <= 1 && projectY >= -1 && projectY <= 1){
-				//	float4 scrPos = ComputeScreenPos(eyesClipPos);
-				//	float eyesLinearDepth = tex2D(_EyesDepthTexture, scrPos/scrPos.w).r;
-				//	if(eyesLinearDepth + 0.002f >= objDepth){
-				//		return mainColor;
-				//	}
-				//}
-				//return mainColor * 0.2f;
+				return float4(0.4, 0.4, 0.4, 1);
             }
             ENDCG
         }
+		
+		Pass{
+            CGPROGRAM
+
+            #include "UnityCG.cginc"
+            #pragma vertex vert_img
+            #pragma fragment frag
+			
+            sampler2D _MainTex;
+            texture2D _ShadowMap;
+			SamplerState _FOW_Trilinear_Clamp_Sampler;
+			
+            float4 frag(v2f_img o) : COLOR
+			{
+				fixed4 mainColor = tex2D(_MainTex, o.uv);
+				float distance = 0.003f;
+
+				// 取周围的像素
+				float4 uv01 = o.uv.xyxy + distance * float4(0, 1, 0, -1);
+				float4 uv10 = o.uv.xyxy + distance * float4(1, 0, -1, 0);
+				float4 uv23 = o.uv.xyxy + distance * float4(0, 1, 0, -1) * 2.0;
+				float4 uv32 = o.uv.xyxy + distance * float4(1, 0, -1, 0) * 2.0;
+				float4 uv45 = o.uv.xyxy + distance * float4(0, 1, 0, -1) * 3.0;
+				float4 uv54 = o.uv.xyxy + distance * float4(1, 0, -1, 0) * 3.0;
+
+				float4 c = float4(0, 0, 0, 0);
+
+				// 根据不同权重求均值
+				c += 0.4 * _ShadowMap.Sample(_FOW_Trilinear_Clamp_Sampler, o.uv);
+				c += 0.075 * _ShadowMap.Sample(_FOW_Trilinear_Clamp_Sampler, uv01.xy);
+				c += 0.075 * _ShadowMap.Sample(_FOW_Trilinear_Clamp_Sampler, uv01.zw);
+				c += 0.075 * _ShadowMap.Sample(_FOW_Trilinear_Clamp_Sampler, uv10.xy);
+				c += 0.075 * _ShadowMap.Sample(_FOW_Trilinear_Clamp_Sampler, uv10.zw);
+				c += 0.05 * _ShadowMap.Sample(_FOW_Trilinear_Clamp_Sampler, uv23.xy);
+				c += 0.05 * _ShadowMap.Sample(_FOW_Trilinear_Clamp_Sampler, uv23.zw);
+				c += 0.05 * _ShadowMap.Sample(_FOW_Trilinear_Clamp_Sampler, uv32.xy);
+				c += 0.05 * _ShadowMap.Sample(_FOW_Trilinear_Clamp_Sampler, uv32.zw);
+				c += 0.025 * _ShadowMap.Sample(_FOW_Trilinear_Clamp_Sampler, uv45.xy);
+				c += 0.025 * _ShadowMap.Sample(_FOW_Trilinear_Clamp_Sampler, uv45.zw);
+				c += 0.025 * _ShadowMap.Sample(_FOW_Trilinear_Clamp_Sampler, uv54.xy);
+				c += 0.025 * _ShadowMap.Sample(_FOW_Trilinear_Clamp_Sampler, uv54.zw);
+
+				
+				return mainColor * c;
+			}
+            ENDCG
+		}
     } 
 }
