@@ -6,6 +6,11 @@ public class CameraEffect : MonoBehaviour
 {
     public Material mainCameraMat;
     public ShieldCameraCtrl[] eyesCamArray;
+    public GameObject mainRole;
+
+    // debug
+    public RenderTexture shadowMap;
+
     Camera mCamera;
 
     void Start()
@@ -32,6 +37,7 @@ public class CameraEffect : MonoBehaviour
         Graphics.Blit(null, rt1, mainCameraMat, 0);
         mainCameraMat.SetTexture("_ShadowMap", rt1);
         Graphics.Blit(src, dest, mainCameraMat, 1);
+        shadowMap = rt1;
         RenderTexture.ReleaseTemporary(rt1);
     }
 
@@ -52,6 +58,9 @@ public class CameraEffect : MonoBehaviour
         mainCameraMat.SetFloatArray("_EyesFarZArray", far);
         mainCameraMat.SetMatrixArray("_EyesVArray", VArray);
         mainCameraMat.SetMatrixArray("_EyesVPArray", VPArray);
+
+        mainCameraMat.SetVector("_RolePos", mainRole.transform.position);
+
         SetTexture();
     }
 }

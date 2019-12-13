@@ -22,6 +22,7 @@
 			float4x4 _EyesVPArray[3];
 			float _EyesNearZArray[3];
 			float _EyesFarZArray[3];
+			float4 _RolePos;
 
             float4 GetWorldPositionFromDepthValue( float2 uv, float linearDepth ) 
             {
@@ -81,11 +82,12 @@
 					eyesLinearDepth = tex2D(_EyesDepthTexture2, scrPos/scrPos.w).r;
 				}
 
-				if(eyesLinearDepth + 0.002f >= pixedDepth){
-					return float4(1, 1, 1, 1);
+				if(eyesLinearDepth + 0.01f >= pixedDepth){
+					float dis = saturate(1 - smoothstep(0, 40, distance(worldPos, _RolePos)) + 0.3f);
+					return float4(dis, dis, dis, 1);
 				}
 
-				return float4(0.4, 0.4, 0.4, 1);
+				return float4(0.3, 0.3, 0.3, 1);
             }
             ENDCG
         }
@@ -100,19 +102,22 @@
             sampler2D _MainTex;
             texture2D _ShadowMap;
 			SamplerState _FOW_Trilinear_Clamp_Sampler;
+			float4 _RolePos;
 			
             float4 frag(v2f_img o) : COLOR
 			{
+				float pos = ComputeScreenPos(mul(UNITY_MATRIX_VP, _RolePos));
+
 				fixed4 mainColor = tex2D(_MainTex, o.uv);
-				float distance = 0.003f;
+				float dis = min(distance(o.uv, pos) * 0.0005f, 0.004f);
 
 				// 取周围的像素
-				float4 uv01 = o.uv.xyxy + distance * float4(0, 1, 0, -1);
-				float4 uv10 = o.uv.xyxy + distance * float4(1, 0, -1, 0);
-				float4 uv23 = o.uv.xyxy + distance * float4(0, 1, 0, -1) * 2.0;
-				float4 uv32 = o.uv.xyxy + distance * float4(1, 0, -1, 0) * 2.0;
-				float4 uv45 = o.uv.xyxy + distance * float4(0, 1, 0, -1) * 3.0;
-				float4 uv54 = o.uv.xyxy + distance * float4(1, 0, -1, 0) * 3.0;
+				float4 uv01 = o.uv.xyxy + dis * float4(0, 1, 0, -1);
+				float4 uv10 = o.uv.xyxy + dis * float4(1, 0, -1, 0);
+				float4 uv23 = o.uv.xyxy + dis * float4(0, 1, 0, -1) * 2.0;
+				float4 uv32 = o.uv.xyxy + dis * float4(1, 0, -1, 0) * 2.0;
+				float4 uv45 = o.uv.xyxy + dis * float4(0, 1, 0, -1) * 3.0;
+				float4 uv54 = o.uv.xyxy + dis * float4(1, 0, -1, 0) * 3.0;
 
 				float4 c = float4(0, 0, 0, 0);
 
